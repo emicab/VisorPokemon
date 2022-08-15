@@ -9,9 +9,8 @@ setTimeout(()=>{
             imageHeight: 150,
             title: 'Listo! Pokemon atrapados!',
             text: 'Click en \'Mostrar\' para ver sus datos!'
-          })
+            })
 }, 3000)
-
 
 let offset = 0;
 let limit = 151;
@@ -20,62 +19,44 @@ let btnAnt = document.getElementById("btnAnterior");
 let btnSig = document.getElementById("btnSiguiente");
 let container = document.getElementById("container");
 let contenedor = document.getElementById("contenedor");
-let btnMostrar = document.querySelector('.btnMostrar');
+let btnMostrar = document.getElementById('btnMostrarPoke');
 
+let localStorage_Datos;
 
 let dataPokemon = [];
+let local_obj_pokemon = {};
 let id_pokemon = 0;
 async function obtenerPokemones() {
     try {
         const listaPokemones = await fetch(`https://pokeapi.co/api/v2/pokemon/?offset=0&limit=${limit}`);
         const listaPokemonesData = await listaPokemones.json();
-        // console.log(listaPokemonesData);
-            let number = listaPokemonesData.results.length;
 
-        //SI QUIERES CONSULTAR SOLO UN POKEMON
-        
-        const infoPokemonUno = await fetch(listaPokemonesData.results[id_pokemon].url);
-        const infoPokemonUnoData = await infoPokemonUno.json();
-        // console.log(infoPokemonUnoData)
-        
-        
+        if(listaPokemones.status === 200){
+            const infoPokemonUno = await fetch(listaPokemonesData.results[id_pokemon].url);
+            const infoPokemonUnoData = await infoPokemonUno.json();
+            // console.log(infoPokemonUnoData)
 
-        //SI QUIERES CONSULTAR TODOS LOS POKEMON (PRO)
-        const listaRequests = [];
-        for (const result of listaPokemonesData.results) {
-            listaRequests.push(fetch(result.url).then((res) => res.json()));
+            //SI QUIERES CONSULTAR TODOS LOS POKEMON (PRO)
+            const listaRequests = [];
+            for (const result of listaPokemonesData.results) {
+                listaRequests.push(fetch(result.url).then((res) => res.json()));
+            }
+            dataPokemon = await Promise.all(listaRequests);
+            console.log(dataPokemon)
+
+
+            pintarPokemon(dataPokemon);
+            getIdPokemon()
+        }else{
+            console.warn('Algo salio mal')
         }
-        dataPokemon = await Promise.all(listaRequests);
-
-        // console.log(dataPokemon)
-        pintarPokemon(dataPokemon);
-        getIdPokemon()
-        
-        // scroller()
-        
     } catch (ex) {
         console.error(ex);
     }
 }
 
-/* const scroller = () =>{
-    container.addEventListener("scroll", (e) => {
-        let alturaScroll = container.scrollHeight - 499;
-        let scrolled = container.scrollTop;   
-        // console.log(`scrolled ${scrolled}`);
-        // console.log(`alturaScroll ${alturaScroll}`);
-        if (alturaScroll === scrolled) {
-            offset += 15;
-            limit += 15;
-            // obtenerPokemones();
-        }
-    });
-} */
-
 let visorPokemon = document.getElementById('visorPokemonDatos');
 function pintarPokemon(dataPokemon) {
-    console.log(dataPokemon);
-    // visorPokemon.innerHTML = `<img src="${dataPokemon[0].sprites.front_default}" alt="">`
 
     dataPokemon.forEach((poke) => {
         container.innerHTML += `
@@ -86,7 +67,7 @@ function pintarPokemon(dataPokemon) {
                 <h3 class="cardPokemon--Datos_nombre">${poke.name}</h3>
                 <img src="${poke.sprites.front_default}" class="img_pokemon">
             </div>
-            <button class="btnMostrar" id="btnMostrar"><i class="fa fa-arrow-left" aria-hidden="true"></i> Mostrar</button>
+            <button class="btnMostrar" id="btnMostrarPoke"><i class="fa fa-arrow-left" aria-hidden="true"></i> Mostrar</button>
         </div>
     </div>`;
     });
@@ -100,7 +81,6 @@ function getImgTipos(types) {
     return typeImg.join("");
 }
 
-
 function getIdPokemon(){
     container.addEventListener('click', (e)=>{
         if(e.target.classList.contains('btnMostrar')){
@@ -108,8 +88,8 @@ function getIdPokemon(){
         }
     })
 }
-let imgVisor = document.getElementById('imgVisor');
 
+let imgVisor = document.getElementById('imgVisor');
 function setPokemon(pokemonObj){
     pokemonID = pokemonObj.querySelector('.id_pokemon').textContent
     pokemonID = parseInt(pokemonID.slice(3, 10))
@@ -135,6 +115,8 @@ function setPokemon(pokemonObj){
             spd: pokemonSeleccionado.stats[5].base_stat,
         }
     }
+    
+    // let datosLS = localStorage.setItem(`${pokemonSeleccionado.name}`, JSON.stringify(setPokemonData))
 
     visorPokemon.innerHTML = `
         <h2 class="Nombre-pokemon">${setPokemonData.nombre}</h2>
@@ -177,82 +159,43 @@ function setPokemon(pokemonObj){
     imgVisor.innerHTML = `
     <div class="contenedor-img">
         <div class="img">
-            <span>Frente</span>
             <img class="Img-pokemon" src="${setPokemonData.img.frontDefault}">
         </div>
         <div class="img">
-            <span>Espalda</span>
             <img class="Img-pokemon" src="${setPokemonData.img.backDefault}">
         </div>
     </div>
     <button class="btnMostrar" id="shiny">Version Shiny 🌟</button>
     `
     let shiny = document.getElementById('shiny');
-shiny.addEventListener('click', ()=>{
-    imgVisor.innerHTML = `
-    <div class="contenedor-img">
-        <div class="img">
-            <span>Frente</span>
-            <img class="Img-pokemon" src="${setPokemonData.img.frontShiny}">
-        </div>
-        <div class="img">
-            <span>Espalda</span>
-            <img class="Img-pokemon" src="${setPokemonData.img.backShiny}">
-        </div>
-    </div>
-    <button class="btnMostrar" id="shiny">Version Shiny 🌟</button>
-    `
-})
+    let imgPokemon = document.querySelector('.Img-pokemon')
+    shiny.addEventListener('click', ()=>{
+        if(imgPokemon.src == `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${setPokemonData.id}.png`){
+            let sprites = `
+            <div class="contenedor-img">
+                <div class="img">
+                    
+                    <img class="Img-pokemon" src="${setPokemonData.img.frontShiny}">
+                </div>
+                <div class="img">
+                    
+                    <img class="Img-pokemon" src="${setPokemonData.img.backShiny}">
+                </div>
+            </div>
+            <button class="btnMostrar" id="shiny">Version Normal</button>
+            `
+            
+            imgVisor.innerHTML = sprites
+            
+        }else{
+            setPokemon()
+        }
+    })
+    console.log(datosLS); 
+
 }
-
-
-
 
 function main(){
     obtenerPokemones();
 }
 main()
-
-/* 
-<!-- Stats Pokemon -->
-<div class="cardPokemon--Tipo">
-    
-</div>
-                    <div class="">
-                        <div class="col-3 d-inline">
-                            <span class="card-text"><small class="text-muted">HP:</small></span>
-                            <span class="card-te"><small class="text-muted">${
-                                poke.stats[0].base_stat
-                            }.</small></span>
-                        </div>
-                        <div class="col-3 d-inline">
-                            <span class="card-text"><small class="text-muted">ATK:</small></span>
-                            <span class="card-text"><small class="text-muted">${
-                                poke.stats[1].base_stat
-                            }.</small></span>
-                        </div>
-                        <div class="col-3 d-inline">
-                            <span class="card-text"><small class="text-muted">DEF:</small></span>
-                            <span class="card-text"><small class="text-muted">${
-                                poke.stats[2].base_stat
-                            }.</small></span>
-                        </div>
-                        <div class="col-3 d-inline">
-                            <span class="card-text"><small class="text-muted">ATK_SPE:</small></span>
-                            <span class="card-text"><small class="text-muted">${
-                                poke.stats[3].base_stat
-                            }.</small></span>
-                        </div>
-                        <div class="col-3 d-inline">
-                            <span class="card-text"><small class="text-muted">DEF_SPE:</small></span>
-                            <span class="card-text"><small class="text-muted">${
-                                poke.stats[4].base_stat
-                            }.</small></span>
-                        </div>
-                        <div class="col-3 d-inline">
-                            <span class="card-text"><small class="text-muted">SPD:</small></span>
-                            <span class="card-text"><small class="text-muted">${
-                                poke.stats[5].base_stat
-                            }.</small></span>
-                        </div>
-                    </div> */
